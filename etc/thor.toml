@@ -1,0 +1,21 @@
+# Thor Config
+
+[general]
+loglevel = "Info"
+logfile = "/export/log/thor/thor.log"
+oversold = false
+oversold_cpus = ",42-63"
+
+[server]
+host = "127.0.0.1"
+port = "9898"
+
+[deal]
+executions = 0
+interval = "2s"
+collector = "direct"
+executor = "local"
+
+[auth]
+authkey = "0FE3BE1EF6204C678C5F4B81D7D8564C"
+
