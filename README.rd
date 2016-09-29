@@ -1,10 +1,10 @@
-##Thor
+## Thor
 Thor is an open source system to provides users a communication channel with the containers.
 It can provide:
-    - An understanding of the real-time resource usage.
-    - A way to execute commands in the container.
-    
-##Install
+- An understanding of the real-time resource usage.
+- A way to execute commands in the container.
+
+## Install
 ```
 #cd thor
 #go build thor.go
@@ -13,7 +13,8 @@ It can provide:
 ```
 Thor will listen on port 9898. Then, to interact with the thor, you may make a tcp connection to this port.
 
-##Request
+## Request
+
 ```
 type Request struct {
 	// token
@@ -39,5 +40,5 @@ type Request struct {
 }
 ```
 
-##More
+## More
 Yeah, for thor is not simple easy enough to use , we also provide a client of thor called "thorctl", you can use it to interact with the thor or learn the way from it.
