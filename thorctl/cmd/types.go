@@ -24,6 +24,9 @@ type ContainerStatus struct {
 	Net_Out_Bytes_Rate    []Metric `json:"Net_Out_Bytes_Rate"`
 	Disk_Read_Bytes_Rate  []Metric `json:"Disk_Read_Bytes_Rate"`
 	Disk_Write_Bytes_Rate []Metric `json:"Disk_Write_Bytes_Rate"`
+	Tcp_Connections       []Metric `json:"Tcp_Connections"`
+	Threads               []Metric `json:"Threads"`
+	Processes             []Metric `json:"Processes"`
 	Succ                  []map[string]string `json:"Succ"`
 
 	// error

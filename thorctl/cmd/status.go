@@ -40,9 +40,10 @@ func fmtMeter(status ContainerStatus, target string) (content string) {
 		cid = target[:CONTAINER_ID_LEN]
 	}
 
-	format := "%s\t%.2f\t%.2f\t%.2f\t%.2f / %.2f\t%.2f / %.2f\n"
+	format := "%s\t%.2f\t%.2f\t%.2f\t%.2f / %.2f\t%.2f / %.2f\t%v\t%v\t%v\n"
 	errStr := 0.0
-	content = fmt.Sprintf(format, cid + "(ERR)", errStr, errStr, errStr, errStr, errStr, errStr, errStr)
+        var errStrint int64 = 0
+	content = fmt.Sprintf(format, cid + "(ERR)", errStr, errStr, errStr, errStr, errStr, errStr, errStr, errStrint, errStrint, errStrint)
 
 	succ, ok := status.Succ[0]["success"]
 	if !ok || succ == "false" {
@@ -166,7 +167,40 @@ func fmtMeter(status ContainerStatus, target string) (content string) {
 
 		disWriteTotal = disWriteTotal / 1024.00 / 1024.00
 
-		content = fmt.Sprintf(format, cid, cpu, mem, load, netInTotal, netOutTotal, diskReadTotal, disWriteTotal)
+		//Tcp_Connections
+		var tcp_conns int64 = 0
+		if len(status.Tcp_Connections) == 0 {
+			tcp_conns = errStrint
+		} else {
+			tcp_conns, err = strconv.ParseInt(status.Tcp_Connections[0].Volume, 10, 64)
+			if err != nil {
+				tcp_conns = errStrint
+			}
+		}
+
+		//Threads
+		var Threads int64 = 0
+		if len(status.Threads) == 0 {
+			Threads = errStrint
+		} else {
+			Threads, err = strconv.ParseInt(status.Threads[0].Volume, 10, 64)
+			if err != nil {
+				Threads = errStrint
+			}
+		}
+
+		//Processes
+		var Processes int64 = 0
+		if len(status.Processes) == 0 {
+			Processes = errStrint
+		} else {
+			Processes, err = strconv.ParseInt(status.Processes[0].Volume, 10, 64)
+			if err != nil {
+				Processes = errStrint
+			}
+		}
+
+		content = fmt.Sprintf(format, cid, cpu, mem, load, netInTotal, netOutTotal, diskReadTotal, disWriteTotal, tcp_conns, Threads, Processes)
 	}
 
 	return
@@ -228,12 +262,12 @@ thorctl -H 127.0.0.1 -P 9898 status 6R574YU`,
 		if idcount == 0 {
 			content = map[string]string{
 				"containerid": target,
-				"metrics": `["CPU_Usage", "MEM_Usage", "Load", "Net_In_Bytes_Rate", "Net_Out_Bytes_Rate", "Disk_Read_Bytes_Rate", "Disk_Write_Bytes_Rate"]`,
+				"metrics": `["CPU_Usage", "MEM_Usage", "Load", "Net_In_Bytes_Rate", "Net_Out_Bytes_Rate", "Disk_Read_Bytes_Rate", "Disk_Write_Bytes_Rate", "Tcp_Connections", "Threads", "Processes"]`,
 			}
 		} else {
 			content = map[string]string{
 				"uuid": target,
-				"metrics": `["CPU_Usage", "MEM_Usage", "Load", "Net_In_Bytes_Rate", "Net_Out_Bytes_Rate", "Disk_Read_Bytes_Rate", "Disk_Write_Bytes_Rate"]`,
+				"metrics": `["CPU_Usage", "MEM_Usage", "Load", "Net_In_Bytes_Rate", "Net_Out_Bytes_Rate", "Disk_Read_Bytes_Rate", "Disk_Write_Bytes_Rate", "Tcp_Connections", "Threads", "Processes"]`,
 			}
 		}
 
@@ -258,7 +292,7 @@ thorctl -H 127.0.0.1 -P 9898 status 6R574YU`,
 				clear = true
 			}
 
-			header := "CONTAINER\tCPU %\tMEM %\tLoad\tNetIO(I/O)\tDiskIO(I/O)\n"
+			header := "CONTAINER\tCPU %\tMEM %\tLoad\tNetIO(I/O)\tDiskIO(I/O)\tTCPCONNS\tThreads\tProcesses\n"
 			content := fmtMeter(status, target)
 
 			lib.Display(content, header, clear)
