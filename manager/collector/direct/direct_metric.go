@@ -41,6 +41,9 @@ func init() {
 	RegisterMetric("Net_Out_Bytes_Rate", InitMetricNetOut)
 	RegisterMetric("Disk_Read_Bytes_Rate", InitMetricDiskRead)
 	RegisterMetric("Disk_Write_Bytes_Rate", InitMetricDiskWrite)
+	RegisterMetric("Tcp_Connections", InitMetricTcpConns)
+	RegisterMetric("Threads", InitMetricThreads)
+	RegisterMetric("Processes", InitMetricProcesses)
 }
 
 func InitMetricCpuUsage() collector.Metric {
@@ -85,6 +88,18 @@ func InitMetricDiskWrite() collector.Metric {
 	}
 }
 
+func InitMetricTcpConns() collector.Metric {
+	return &Tcp_Conns_Metric{}
+}
+
+func InitMetricThreads() collector.Metric {
+	return &Threads_Metric{}
+}
+
+func InitMetricProcesses() collector.Metric {
+	return &Processes_Metric{}
+}
+
 type CPU_Usage_Metric struct {
 	Cache map[string]float64
 }
@@ -113,6 +128,18 @@ type Disk_Read_Bytes_Metric struct {
 type Disk_Write_Bytes_Metric struct {
 	Cache   map[string]float64
 	CacheDm map[string]string
+}
+
+type Tcp_Conns_Metric struct {
+
+}
+
+type Threads_Metric struct {
+
+}
+
+type Processes_Metric struct {
+
 }
 
 
@@ -560,6 +587,134 @@ func (cm *Disk_Write_Bytes_Metric)Collect(option map[string]string) ([]map[strin
 	_, volume_exists := sample[0]["volume"]
 	if !volume_exists {
 		return sample, errors.New("Get disk write volume failed!")
+	}
+
+	return sample, nil
+}
+
+func (cm *Tcp_Conns_Metric)GetName() string {
+	return "Tcp_Connections"
+}
+
+func (cm *Tcp_Conns_Metric)Collect(option map[string]string) ([]map[string]string, error) {
+	sample := []map[string]string{{"timestamp": strconv.FormatInt(time.Now().Unix(), 10), "unit": "connection", "label": "tcp.connections"}}
+	connections, err := GetTcpConns(option["pid"])
+	if err != nil {
+		log.Error("Error while get tcp connections:%s", err.Error())
+		return sample, err
+	}
+
+	sample[0]["volume"] = strconv.FormatInt(connections, 10)
+
+	_, volume_exists := sample[0]["volume"]
+	if !volume_exists {
+		return sample, errors.New("Get tcp.connections volume failed!")
+	}
+
+	return sample, nil
+}
+
+func GetTcpConns(pid string) (int64, error) {
+	path_ipv4 := "/proc/" + pid + "/net/tcp"
+	tcp_nums_ipv4, err := GetTcpNumbers(path_ipv4)
+	if err != nil {
+		log.Error("Error while get tcp_nums_ipv4:%s", err.Error())
+		return 0, err
+	}
+
+	path_ipv6 := "/proc/" + pid + "/net/tcp6"
+	tcp_nums_ipv6, err := GetTcpNumbers(path_ipv6)
+	if err != nil {
+		log.Error("Error while get tcp_nums_ipv6:%s", err.Error())
+		return 0, err
+	}
+
+	return tcp_nums_ipv4+tcp_nums_ipv6, nil
+}
+
+func GetTcpNumbers(path string) (int64, error) {
+	var tcp_nums int64 = 0
+	fi, err := os.Open(path)
+	defer fi.Close()
+	if err != nil {
+		log.Error("Error while open %s:%s", path, err.Error())
+		return 0, err
+	}
+	fd, err := ioutil.ReadAll(fi)
+	if err != nil {
+		log.Error("Error while read file %s:%s", path, err.Error())
+		return 0, err
+	}
+	tcp_conn_list := strings.Split(string(fd), "\n")
+	for _, tcp_conn := range tcp_conn_list[1:len(tcp_conn_list)-1] {
+		if strings.Fields(tcp_conn)[3] == "01" {
+			tcp_nums += 1
+		}
+	}
+	return tcp_nums, nil
+}
+
+func (cm *Threads_Metric)GetName() string {
+	return "Threads"
+}
+
+func (cm *Threads_Metric)Collect(option map[string]string) ([]map[string]string, error) {
+	sample := []map[string]string{{"timestamp": strconv.FormatInt(time.Now().Unix(), 10), "unit": "thread", "label": "threads"}}
+	threads, err := GetLines(option["containerid"], option["os_version"], "tasks")
+	if err != nil {
+		log.Error("Error while get Threads:%s", err.Error())
+		return sample, err
+	}
+
+	sample[0]["volume"] = strconv.FormatInt(threads, 10)
+
+	_, volume_exists := sample[0]["volume"]
+	if !volume_exists {
+		return sample, errors.New("Get Threads volume failed!")
+	}
+
+	return sample, nil
+}
+
+func GetLines(contain_id string, os_version string, file_name string) (int64, error) {
+	path, err := util.JoinPath(os_version, "cpuacct", contain_id, file_name)
+	if err != nil{
+		log.Error("Error while Join %s path:%s", file_name, err.Error())
+		return 0, err
+	}
+	fi, err := os.Open(path)
+	defer fi.Close()
+	if err != nil {
+		log.Error("Error while open %s:%s", file_name, err.Error())
+		return 0, err
+	}
+	fd, err := ioutil.ReadAll(fi)
+	if err != nil {
+		log.Error("Error while read file %s:%s", file_name, err.Error())
+		return 0, err
+	}
+	lines := strings.Split(string(fd), "\n")
+
+	return int64(len(lines)), nil
+}
+
+func (cm *Processes_Metric)GetName() string {
+	return "Processes"
+}
+
+func (cm *Processes_Metric)Collect(option map[string]string) ([]map[string]string, error) {
+	sample := []map[string]string{{"timestamp": strconv.FormatInt(time.Now().Unix(), 10), "unit": "process", "label": "processes"}}
+	processs, err := GetLines(option["containerid"], option["os_version"], "cgroup.procs")
+	if err != nil {
+		log.Error("Error while get Processes:%s", err.Error())
+		return sample, err
+	}
+
+	sample[0]["volume"] = strconv.FormatInt(processs, 10)
+
+	_, volume_exists := sample[0]["volume"]
+	if !volume_exists {
+		return sample, errors.New("Get Processes volume failed!")
 	}
 
 	return sample, nil
