@@ -86,12 +86,18 @@ func GetContainerIdByUUID(uuid string) (ContainerInfo, error) {
 	var coninfo ContainerInfo
 	var err error = errors.New("Get container_id or pid failed!")
 	containname := "nova-"+uuid
-	client := &http.Client{}
+	transport := http.Transport{
+		DisableKeepAlives: true,
+	}
+	client := http.Client{
+		Transport: &transport,
+	}
 	request, _ := http.NewRequest("GET", "http://127.0.0.1:5050/containers/"+containname+"/json", nil)
 	request.Header.Set("Content-type","application/json")
 
 	for i :=1; i<=2; i++ {
 		response, err := client.Do(request)
+		defer response.Body.Close()
 		if err != nil {
 			return coninfo, err
 		}
@@ -118,12 +124,18 @@ func GetPIDByContainerId(cid string) (ContainerInfo, error) {
 	var coninfo ContainerInfo
 	var err error = errors.New("Get container pid failed!")
 
-	client := &http.Client{}
+	transport := http.Transport{
+		DisableKeepAlives: true,
+	}
+	client := http.Client{
+		Transport: &transport,
+	}
 	request, _ := http.NewRequest("GET", "http://127.0.0.1:5050/containers/" + cid + "/json", nil)
 	request.Header.Set("Content-type","application/json")
 
 	for i :=1; i<=2; i++ {
 		response, err := client.Do(request)
+		defer response.Body.Close()
 		if err != nil {
 			return coninfo, err
 		}
